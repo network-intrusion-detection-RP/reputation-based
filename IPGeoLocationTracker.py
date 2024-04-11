@@ -75,6 +75,9 @@ class IpGeoLocationTracker:
         self.timezone_utc = None
         self.current_time = None
 
+        # function calling
+        self.track_ip()
+
     def track_ip(self):
         """
         Fetches information about the IP address using the IPWHOIS API.
