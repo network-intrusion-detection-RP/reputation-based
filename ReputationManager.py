@@ -1,9 +1,14 @@
+import json
 from IPGeoLocationTracker import IpGeoLocationTracker
 
 
 class ReputationManager:
-    BLACKLIST: set[str] = {"Blacklisted IPs"}  # Class attribute (default blacklist)
-    DEFAULT_POINT_RULES = {
+
+    BLACKLIST: dict[str, list[str]] = {
+        "Manual": ["1.2.3.4"],  # Manually blacklisted IPs
+        "Suspicious Activity": [],  # IPs flagged for suspicious activity
+    }
+    DEFAULT_POINT_RULES: dict[str, dict[str, int]] = {
         "country": {"US": 10, "UK": 20},
         "region": {"NY": 5, "CA": 8},
         "city": {"New York City": 5, "Los Angeles": 8},
@@ -26,12 +31,14 @@ class ReputationManager:
         """
 
         if blacklist is None:
-            self.blacklist = self.BLACKLIST.copy()  # Use class attribute if no argument provided
+            # Use class attribute if no argument provided
+            self.blacklist = self.BLACKLIST.copy()
         else:
             self.blacklist = blacklist
 
         if point_rules is None:
-            self.point_rules = self.DEFAULT_POINT_RULES.copy()  # Use class attribute if no argument provided
+            # Use class attribute if no argument provided
+            self.point_rules = self.DEFAULT_POINT_RULES.copy()
         else:
             self.point_rules = point_rules
 
@@ -57,8 +64,7 @@ class ReputationManager:
         for attr, attr_rules in self.point_rules.items():
             attr_value = getattr(ip_tracker, attr)
             if attr_value in attr_rules:
-                reputation_score +=attr_rules[attr_value]
-            pass
+                reputation_score += attr_rules[attr_value]
 
         return reputation_score
 
@@ -72,18 +78,54 @@ class ReputationManager:
         Returns:
             bool: True if IP address is in the blacklist, False otherwise.
         """
-        return ip_address in self.blacklist
+
+        for reason, ip_list in self.BLACKLIST.items():
+            if ip_address in ip_list:
+                return True
+        return False
+
+    def add_to_blacklist(self, reason: str, ip_address: str) -> None:
+        """
+        Adds an IP address to the blacklist for a specific reason.
+
+        Args:
+            reason (str): The reason for blacklisting the IP.
+            ip_address (str): The IP address to blacklist.
+        """
+        if reason not in self.BLACKLIST:
+            self.BLACKLIST[reason] = []
+        self.BLACKLIST[reason].append(ip_address)
+
+
+
+    @classmethod
+    def load_rules_from_json(cls, json_file):
+        """
+        Load custom point rules from a JSON file.
+
+        Args:
+            json_file (str): The path to the JSON file containing the rules.
+
+        Returns:
+            dict: A dictionary containing the loaded rules.
+        """
+        try:
+            with open(json_file, 'r') as file:
+                rules = json.load(file)
+        except FileNotFoundError:
+            print(f"Error: JSON file '{json_file}' not found.")
+            return {}
+        except json.JSONDecodeError:
+            print(f"Error: Unable to decode JSON file '{json_file}'.")
+            return {}
+        else:
+            return rules
 
 
 if __name__ == "__main__":
-    # Define custom point rules
-    custom_point_rules = {
-        "country": {"United States": 10, "UK": 20, "India": 100},
-        "region": {"NY": 5, "CA": 8},
-        "city": {"New York City": 5, "Los Angeles": 8},
-        "isp": {"ISP1": 10, "ISP2": 15},
-        "org": {"Organization1": 10, "Organization2": 15}
-    }
+    # Load custom point rules from JSON file
+    custom_point_rules = ReputationManager.load_rules_from_json(
+        "updated_rules.json")
 
     # Initialize ReputationManager with custom point rules
     reputation_manager = ReputationManager(point_rules=custom_point_rules)
@@ -92,6 +134,7 @@ if __name__ == "__main__":
     ip_addresses = ["136.233.9.98", "8.8.8.8"]
 
     for ip_address in ip_addresses:
-        # Get reputation score for the IP addrsss
+        # Get reputation score for the IP address
         reputation_score = reputation_manager.get_reputation(ip_address)
-        print(f"Reputation score for IP address {ip_address}: {reputation_score}")
+        print(
+            f"Reputation score for IP address {ip_address}: {reputation_score}")
