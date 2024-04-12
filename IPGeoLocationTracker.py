@@ -81,4 +81,3 @@ if __name__ == "__main__":
     print(ip_tracker.country)
 
 
-## How to make this code better?  
