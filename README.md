@@ -21,7 +21,6 @@ A reputation manager for IP addresses. It leverages IP geolocation data and user
         * ISP (Internet Service Provider)
         * Organization
         * Timezone details
-        * And more (depending on the API capabilities)
     * Handles potential errors during the API call or data parsing.
 
 **2. PointRuleBuilder:**
